@@ -2,8 +2,190 @@
 线程知识整理
 ## 创建线程
 1.实现Runable接口
+
 2.继承Thread
-3.
+
+3.实现 Callable接口
+
+对比：
+   java不支持多重继承，但可以实现多个Runnable接口
+## 创建线程池 Excutor
+
+1.newCachedThreadPool()
+创建一个可缓存的线程池，如果线程池的大小超过了处理任务所需要的线程，那么就会回收部分空闲线程。
+2.newFixedThreadPool(nThreads: n)
+创建固定线程池个数
+3.newSingleThreadExecutor()
+创建一个单一线程池，相当于newFixedThreadPool(1)
+4.newScheduledThreadPool()
+创建一个大小无限的线程池。此线程池支持定时以及周期性执行任务的需求。
+
+## 守护线程
+守护线程是程序运行时在后台提供服务的线程
+当主线程终止时，守护线程也会终止
+    
+      public static void main(String[] args) {
+            Thread t = new Thread(new ThreadDeamon());
+            t.setDaemon(true);
+            t.start();
+        }
+      
+## 睡眠
+sleep()
+线程处于休息状态
+
+    public void run(){
+            System.out.println("Hello World");
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+## 让步
+yield()
+当前线程已经执行完毕，可以切换给其它线程来执行。
+该方法是给线程调度器的一个建议，而且要保证相同优先级。
+    
+    public void run(){
+            System.out.println("Hello World");
+            Thread.yield();
+        }
+
+## 中断
+
+当线程执行完毕或者发送异常时，线程会停止运行
+
+interrupt()
+提前结束线程，如果该线程处于阻塞，等待状态，就会抛出InterruptException，从而提前结束线程。
+但不能中断synchronized锁和I/O锁
+
+    public void run(){
+            try {
+                Thread.sleep(10000);
+                System.out.println("Hello World");//并没有执行到，被中断了
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    
+        public static void main(String[] args) throws InterruptedException {
+            Thread t = new Thread(new ThreadInterrupt());
+            t.start();
+            t.interrupt();
+            System.out.println("Thread already inturupt");
+        }
+
+interupted()
+
+isInterrupted()
+
+1.interrupted 是作用于当前线程是否是中断状态，执行后具有清除状态功能。
+2.isInterrupted 是作用于调用该方法的线程对象所对应的线程，判断线程是否处于中断状态。
+（线程对象对应的线程不一定是当前运行的线程。例如我们可以在A线程中去调用B线程对象的isInterrupted方法。）
+
+在循环体中，判断线程是否处于中断状态，从而提前结束线程。
+
+
+## 互斥同步块
+
+sychronized
+
+保证线程安全
+1.同步一个（静态）方法  （静态作用于整个类）
+2.同步一个类
+
+    public class ThreadSynChronized extends Thread {
+    
+        public void run(){
+            go();
+        }
+    
+        private synchronized static void go(){
+            for(int i = 0; i < 10; i++){
+                System.out.print(i + " ");
+            }
+            System.out.println();
+        }
+    
+        private static void go2(){
+            synchronized (ThreadSynChronized.class) {
+                for (int i = 0; i < 10; i++) {
+                    System.out.print(i + " ");
+                }
+            }
+            System.out.println();
+        }
+    
+    
+        public static void main(String[] args) {
+            Thread t1 = new Thread(new ThreadSynChronized()){
+                public void run(){
+                    go2();
+                }
+            };
+            Thread t2 = new Thread(new ThreadSynChronized()){
+                public void run(){
+                    go2();
+                }
+            };
+            t1.start();
+            t2.start();
+        }
+    }
+
+重入锁
+锁相当于手动同步，synchronized相当于自动同步
+切记：锁同步完成后要释放锁，否则会发生死锁。
+
+    public class ThreadLock {
+        private static Lock lock = new ReentrantLock();
+    
+        public void run() {
+            go();
+        }
+    
+        private static void go() {
+            lock.lock();
+            try {
+                for (int i = 0; i < 10; i++) {
+                    System.out.print(i + " ");
+                }
+                System.out.println();
+            } finally {
+                lock.unlock();
+            }
+        }
+    
+        private static void go2() {
+            lock.lock();
+            try {
+                for (int i = 0; i < 10; i++) {
+                    System.out.print(i + " ");
+                }
+                System.out.println();
+            } finally {
+                lock.unlock();
+            }
+        }
+    
+    
+        public static void main(String[] args) {
+            Thread t1 = new Thread(new ThreadSynChronized()) {
+                public void run() {
+                    go2();
+                }
+            };
+            Thread t2 = new Thread(new ThreadSynChronized()) {
+                public void run() {
+                    go2();
+                }
+            };
+            t1.start();
+            t2.start();
+        }
+    }
+    
 ### 线程安全
 线程安全：当多个线程访问某个类时，这个类始终都能表现出正确的行为，那么这个类就称为线程安全的。
 
@@ -16,17 +198,20 @@
 
 （正确的结果取决于运气）
 
-### 内置锁
-
-    synchronized(lock){
-      //do something();
-    }
-    
-### 重入
-
 ### 用锁来保护状态
 
 每个共享的和可变的变量都应该只由一个锁来保护，从而使维护人员知道哪一个锁。
+
+### synchronized 和 Reentrantlock 比较
+1.锁的实现
+synchronized是JVM实现，Reentrantlock是JDK实现。
+2.synchoronized能不用担心没有释放锁，JVM会保证锁的释放，优先使用synchoronized
+
+## 线程之间的协作
+
+join()
+在一个线程中调用另一个线程的join()方法，会将当前线程挂起，而不是忙等待，直到目标线程结束。
+
 
 ## 对象的共享
 
@@ -113,14 +298,6 @@ ThreadLocal对象通常用于防止对可变的单实例变量或全局变量进
 
 ## 将同步策略文档化
 # 基础构建模块
-
-## 使用线程
-
-1.实现Runnable接口
-2.继承Thread类
-3.实现Callable接口
-
-
 
 所有共享容器在迭代的地方都要加锁
 
