@@ -1,13 +1,14 @@
 package cooperation;
 
 public class ThreadCooperation extends Thread{
+    private static ThreadCooperation cooperation = new ThreadCooperation();
     public static void main(String[] args) {
         Thread t1 = new Thread(new ThreadCooperation()){
             public void run(){
                 System.out.println("wait start");
                 try {
-                    synchronized (ThreadCooperation.class) {
-                        wait();
+                    synchronized (cooperation) {
+                        cooperation.wait();
                     }
                     System.out.println("wait end");
                 } catch (InterruptedException e) {
@@ -19,9 +20,14 @@ public class ThreadCooperation extends Thread{
 
         Thread t2 = new Thread(new ThreadCooperation()){
             public void run(){
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 System.out.println("notify start");
-                synchronized (ThreadCooperation.class) {
-                    notifyAll();
+                synchronized (cooperation) {
+                    cooperation.notifyAll();
                 }
                 System.out.println("notify end");
             }
