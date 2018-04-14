@@ -394,7 +394,29 @@ volatile变量使用时机：
 一种避免使用同步的方式，就是不共享数据。
 
 ### ThreadLocal类
+实现线程本地存储功能
 
+    public static void main(String[] args) {
+            final ThreadLocal threadLocal = new ThreadLocal(); //把共享数据的可见范围限制在同一个线程之内
+            final Thread t1 = new Thread(new ThreadThreadLocal()){
+                public void run(){
+                    threadLocal.set(1);
+                    System.out.println(threadLocal.get());
+                    threadLocal.remove();
+                }
+            };
+            Thread t2 = new Thread(new ThreadThreadLocal()){
+                public void run(){
+                    threadLocal.set(2);
+                    System.out.println(threadLocal.get());
+                    threadLocal.remove();
+                }
+            };
+    
+            t1.start();
+            t2.start();
+        }
+        
 ThreadLocal对象通常用于防止对可变的单实例变量或全局变量进行共享。
 
 使用时机：当某个频繁执行的操作需要一个临时对象，例如一个缓冲区，而同时又希望避免在每次执行时，都需要重新分配该临时对象。
