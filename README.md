@@ -135,6 +135,7 @@ sychronized
     }
 
 重入锁
+
 锁相当于手动同步，synchronized相当于自动同步
 切记：锁同步完成后要释放锁，否则会发生死锁。
 
@@ -210,7 +211,85 @@ synchronized是JVM实现，Reentrantlock是JDK实现。
 ## 线程之间的协作
 
 join()
+
 在一个线程中调用另一个线程的join()方法，会将当前线程挂起，而不是忙等待，直到目标线程结束。
+
+    public class ThreadJoin {
+        public class TestA extends Thread {
+            public void run() {
+                System.out.println("TestA");
+            }
+        }
+    
+        public class TestB extends Thread {
+            TestA a = new TestA();
+            public void run() {
+                try {
+                    a.join();//线程B挂起，让A先执行完，再执行
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("TestB");
+            }
+        }
+    
+        public void test() {
+            Thread t1 = new Thread(new TestA());
+            Thread t2 = new Thread(new TestB());
+            t2.start();
+            t1.start();
+        }
+    
+        public static void main(String[] args) {
+            ThreadCooperation cooperation = new ThreadCooperation();
+            cooperation.test();
+        }
+    }
+
+## wait() notify() notifyAll()
+等待 唤醒 唤醒所有
+
+wait会释放锁，sleep不会
+
+## AQS
+
+CountDownLatch
+用来控制一个线程等待多个线程。
+每次调用countDown()让计数器减一
+
+CyclicBarrier
+用来控制多个线程相互等待，只有当多个线程到达时，这些线程才会执行。
+
+Sempahore
+
+用来控制系统的信号量，可以控制互斥资源的访问量。
+
+控制线程的并发访问量
+    
+    public class ThreadSemaphore extends Thread{
+        Semaphore semaphore = new Semaphore(3);//每次只能3个客户访问
+        public static void main(String[] args) {
+    
+            ExecutorService executor = Executors.newCachedThreadPool();
+            for(int i = 0; i < 10; i++){
+                executor.execute(new ThreadSemaphore());
+            }
+            executor.shutdown();
+        }
+    
+        public void run(){
+            try {
+                semaphore.acquire();
+                System.out.print(semaphore.availablePermits() + " ");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }finally {
+                semaphore.release();
+            }
+        }
+    }
+    
+## BlockingQueue
 
 
 ## 对象的共享
