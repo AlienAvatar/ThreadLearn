@@ -256,9 +256,58 @@ wait会释放锁，sleep不会
 CountDownLatch
 用来控制一个线程等待多个线程。
 每次调用countDown()让计数器减一
-
+    
+    public class ThreadCountDownLatch implements Runnable{
+        private static CountDownLatch latch = new CountDownLatch(10);//计数器cnt = 10
+    
+        public void run() {
+            System.out.println("latch start");
+            latch.countDown();
+            System.out.println("latch end");
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    
+        public static void main(String[] args) throws InterruptedException{
+            int countThread = 10;
+            ExecutorService executor = Executors.newCachedThreadPool();
+            for(int i = 0;  i < countThread; i++){
+                executor.execute(new ThreadCountDownLatch());
+            }
+            executor.shutdown();
+        }
+    }
 CyclicBarrier
 用来控制多个线程相互等待，只有当多个线程到达时，这些线程才会执行。
+
+    public class ThreadCyclicBarrier extends Thread {
+        private static CyclicBarrier cyclicBarrier = new CyclicBarrier(10);
+    
+        public static void main(String[] args) {
+            int count = 10;
+            ExecutorService executor = Executors.newCachedThreadPool();
+            for(int i = 0; i < count; i++){
+                executor.execute(new ThreadCyclicBarrier());
+            }
+            executor.shutdown();
+        }
+    
+        public void run(){
+            System.out.println("CyclicBarrier start");
+            try {
+                cyclicBarrier.await(); //等待所有线程执行完
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (BrokenBarrierException e) {
+                e.printStackTrace();
+            }
+            System.out.println("CyclicBarrier end");
+        }
+    }
+
 
 Sempahore
 
@@ -291,6 +340,27 @@ Sempahore
     
 ## BlockingQueue
 
+FIFO队列 先进先出
+优先级队列 
+
+提供阻塞take()和put()方法
+
+用BlockingQueue解决生产者-消费者模型。
+
+## Java内存模型
+内存模型解决 内存访问一致性问题。
+
+内存模型三大特性
+
+### 原子性
+CAS 保证变量操作值的完整性
+Atomic类，保证修改变量的线程安全性
+
+### 可见性
+当一个线程修改了共享变量的值，其它线程立刻知道修改的值。
+
+### 有序性
+让线程顺序执行同步代码。
 
 ## 对象的共享
 
@@ -376,19 +446,16 @@ ThreadLocal对象通常用于防止对可变的单实例变量或全局变量进
     }
 
 ## 将同步策略文档化
-# 基础构建模块
 
-所有共享容器在迭代的地方都要加锁
+## 锁优化
+### 自旋锁
+自旋锁是为了 减少 线程切换的开销。
+当有两个以上线程并行执行时，让后面请求锁的线程“稍等片刻”，为了延续CPU的执行时间，观察持有锁的线程是否快执行完了，
+这时需要线程持续等待，于是，就让线程执行一个忙循环（自旋），这就是自旋锁。
 
-通过并发容器代替同步容器可以极大地提高性能，降低风险。
+###自适应自旋锁
+如果锁占用时间过长，反而影响了CPU资源，限定自旋次数，如果还没获得锁，就让线程挂起。
+-XX:PreBlockSpin 来更改
 
-ConcurrentHashMap
-    加锁机制：分段锁
-
-生产-消费者队列
-
-闭锁 FutureTask
-
-信号量 Semaphore
-
-栅栏 CyclicBarrier
+### 偏向锁
+锁会偏向于它第一次获得此线程的锁，如果其他线程没有获取该锁，持有偏向锁的线程将永远不需要同步。
